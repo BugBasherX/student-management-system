@@ -1,81 +1,139 @@
+/*
+=========================================
+ Student Management System
+ File: main.c
+=========================================
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "login.h"
 #include "student.h"
 
-void menu() {
-    printf("\n=========================================\n");
-    printf("      STUDENT MANAGEMENT SYSTEM\n");
-    printf("=========================================\n");
-    printf("1. Add Student\n");
-    printf("2. View Students\n");
-    printf("3. Search Student\n");
-    printf("4. Update Student\n");
-    printf("5. Delete Student\n");
-    printf("6. Student Statistics\n");
+void clearScreen() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
+void pauseScreen() {
+    printf("\nPress Enter to continue...");
+    getchar();
+    getchar();
+}
+
+void displayMenu() {
+    printf("\n====================================\n");
+    printf("     STUDENT MANAGEMENT SYSTEM\n");
+    printf("====================================\n");
+    printf("1. Login\n");
+    printf("2. Add Student\n");
+    printf("3. View Students\n");
+    printf("4. Search Student\n");
+    printf("5. Update Student\n");
+    printf("6. Delete Student\n");
     printf("7. Exit\n");
-    printf("=========================================\n");
-    printf("Enter your choice: ");
+    printf("====================================\n");
+    printf("Enter Choice: ");
 }
 
 int main() {
     int choice;
-
-    printf("=========================================\n");
-    printf("      WELCOME TO STUDENT SYSTEM\n");
-    printf("=========================================\n");
-
-    if (!login()) {
-        printf("\nAccess Denied!\n");
-        return 0;
-    }
+    int loggedIn = 0;
 
     while (1) {
-        menu();
+        clearScreen();
+        displayMenu();
 
         if (scanf("%d", &choice) != 1) {
-            printf("Invalid input!\n");
+            printf("\nInvalid input!\n");
+
             while (getchar() != '\n');
+
+            pauseScreen();
             continue;
         }
 
         switch (choice) {
+
             case 1:
-                addStudent();
+                loggedIn = login();
+
+                if (loggedIn)
+                    printf("\nLogin Successful!\n");
+                else
+                    printf("\nInvalid Username or Password!\n");
+
+                pauseScreen();
                 break;
 
             case 2:
-                viewStudents();
+
+                if (!loggedIn) {
+                    printf("\nPlease login first!\n");
+                } else {
+                    addStudent();
+                }
+
+                pauseScreen();
                 break;
 
             case 3:
-                searchStudent();
+
+                if (!loggedIn) {
+                    printf("\nPlease login first!\n");
+                } else {
+                    viewStudents();
+                }
+
+                pauseScreen();
                 break;
 
             case 4:
-                updateStudent();
+
+                if (!loggedIn) {
+                    printf("\nPlease login first!\n");
+                } else {
+                    searchStudent();
+                }
+
+                pauseScreen();
                 break;
 
             case 5:
-                deleteStudent();
+
+                if (!loggedIn) {
+                    printf("\nPlease login first!\n");
+                } else {
+                    updateStudent();
+                }
+
+                pauseScreen();
                 break;
 
             case 6:
-                studentStatistics();
+
+                if (!loggedIn) {
+                    printf("\nPlease login first!\n");
+                } else {
+                    deleteStudent();
+                }
+
+                pauseScreen();
                 break;
 
             case 7:
-                printf("\nThank you for using the Student Management System.\n");
+
+                printf("\nThank you for using Student Management System.\n");
                 exit(0);
 
             default:
-                printf("\nInvalid choice! Please try again.\n");
-        }
 
-        printf("\nPress Enter to continue...");
-        getchar();
-        getchar();
-        system("cls || clear");
+                printf("\nInvalid Choice!\n");
+                pauseScreen();
+        }
     }
 
     return 0;
