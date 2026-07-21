@@ -1,3 +1,4 @@
+modules = ["python-base-3.13"]
 [nix]
 channel = "stable-25_05"
 
@@ -20,9 +21,14 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "gcc -o student_mgmt main.c login.c student.c && ./student_mgmt"
+args = "gcc -o sms_server server.c && ./sms_server"
+waitForPort = 5000
 
-[workflows.workflow.metadata]
-outputType = "console"
+[[ports]]
+localPort = 5000
+externalPort = 80
