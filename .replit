@@ -26,7 +26,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "gcc -o student_mgmt main.c login.c student.c && ./student_mgmt"
+args = "gcc -o student_mgmt main.c login.c student.c ui.c && ./student_mgmt"
 
 [[ports]]
 localPort = 5000
