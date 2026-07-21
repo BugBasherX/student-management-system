@@ -1,48 +1,39 @@
-/* =============================================
-   Student Management System — Frontend
-   ============================================= */
+/* ═══════════════════════════════════════
+   Student Management System — App Logic
+   ═══════════════════════════════════════ */
 
-const API = '';  /* same origin */
-let students = [];
-let sortCol  = 'id';
-let sortDir  = 1;   /* 1 = asc, -1 = desc */
+const API = '';
+let students        = [];
+let sortCol         = 'id';
+let sortDir         = 1;
 let pendingDeleteId = null;
 
-/* =============================================
-   Auth
-   ============================================= */
+/* ── Auth ────────────────────────────── */
 function isLoggedIn() { return sessionStorage.getItem('sms_auth') === '1'; }
 
 document.getElementById('login-form').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = document.getElementById('login-btn');
   const err = document.getElementById('login-error');
-  btn.textContent = 'Signing in…';
-  btn.disabled = true;
+  btn.textContent = 'Signing in…'; btn.disabled = true;
   err.classList.add('hidden');
 
   try {
-    const res = await fetch(`${API}/api/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res  = await fetch(`${API}/api/login`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         username: document.getElementById('username').value,
         password: document.getElementById('password').value
       })
     });
     const data = await res.json();
-    if (data.ok) {
-      sessionStorage.setItem('sms_auth', '1');
-      showApp();
-    } else {
-      err.classList.remove('hidden');
-    }
+    if (data.ok) { sessionStorage.setItem('sms_auth', '1'); showApp(); }
+    else err.classList.remove('hidden');
   } catch {
-    err.textContent = 'Could not reach the server. Try again.';
+    err.textContent = 'Server unreachable. Try again.';
     err.classList.remove('hidden');
   }
-  btn.textContent = 'Sign In';
-  btn.disabled = false;
+  btn.textContent = 'Sign In'; btn.disabled = false;
 });
 
 function logout() {
@@ -60,23 +51,20 @@ function showApp() {
   loadStudents();
 }
 
-/* =============================================
-   Navigation
-   ============================================= */
+/* ── Navigation ──────────────────────── */
 function showSection(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-  document.querySelectorAll('.nav-item').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(a => {
+    a.classList.toggle('active', a.dataset.section === name);
+  });
   document.getElementById(`section-${name}`).classList.remove('hidden');
-  document.querySelector(`.nav-item[onclick*="${name}"]`).classList.add('active');
 }
 
-/* =============================================
-   Data
-   ============================================= */
+/* ── Data ────────────────────────────── */
 async function loadStudents() {
   try {
-    const res  = await fetch(`${API}/api/students`);
-    students   = await res.json();
+    const res = await fetch(`${API}/api/students`);
+    students  = await res.json();
     renderTable();
     renderDashboard();
   } catch {
@@ -84,39 +72,56 @@ async function loadStudents() {
   }
 }
 
-/* =============================================
-   Dashboard
-   ============================================= */
+/* ── Dashboard ───────────────────────── */
 function renderDashboard() {
-  document.getElementById('stat-total').textContent = students.length;
+  const n = students.length;
+  document.getElementById('stat-total').textContent = n;
 
-  const avgGpa = students.length
-    ? (students.reduce((s, x) => s + x.gpa, 0) / students.length).toFixed(2)
-    : '0.00';
-  document.getElementById('stat-avg-gpa').textContent = avgGpa;
+  if (n > 0) {
+    const avg = (students.reduce((s, x) => s + x.gpa, 0) / n).toFixed(2);
+    document.getElementById('stat-avg-gpa').textContent = avg;
+    const top = Math.max(...students.map(s => s.gpa)).toFixed(2);
+    document.getElementById('stat-top-gpa').textContent = top;
+  } else {
+    document.getElementById('stat-avg-gpa').textContent = '—';
+    document.getElementById('stat-top-gpa').textContent = '—';
+  }
 
-  const courses = new Set(students.map(s => s.course)).size;
-  document.getElementById('stat-courses').textContent = courses;
+  document.getElementById('stat-courses').textContent =
+    new Set(students.map(s => s.course)).size;
 
-  const top = students.length ? Math.max(...students.map(s => s.gpa)).toFixed(2) : '0.00';
-  document.getElementById('stat-top-gpa').textContent = top;
-
-  /* Recent: last 5 */
+  /* Recent 5 */
   const recent = [...students].sort((a, b) => b.id - a.id).slice(0, 5);
-  const tbody  = document.getElementById('recent-body');
-  tbody.innerHTML = recent.map(s => `
-    <tr>
-      <td>${s.id}</td>
-      <td>${esc(s.name)}</td>
-      <td>${s.age}</td>
-      <td>${esc(s.course)}</td>
-      <td>${gpaBadge(s.gpa)}</td>
-    </tr>`).join('');
+  const rBody  = document.getElementById('recent-body');
+  if (recent.length === 0) {
+    rBody.innerHTML = `<tr><td colspan="3" class="empty-row">No students yet</td></tr>`;
+  } else {
+    rBody.innerHTML = recent.map(s => `
+      <tr>
+        <td>${esc(s.name)}</td>
+        <td style="color:var(--t2)">${esc(s.course)}</td>
+        <td>${gpaChip(s.gpa)}</td>
+      </tr>`).join('');
+  }
+
+  /* Top performer */
+  const perf = document.getElementById('top-performer');
+  if (n === 0) {
+    perf.innerHTML = `<div class="performer-empty">No students yet</div>`;
+  } else {
+    const star = students.reduce((best, s) => s.gpa > best.gpa ? s : best);
+    perf.innerHTML = `
+      <div class="performer-body">
+        <div class="performer-avatar">${star.name[0].toUpperCase()}</div>
+        <div class="performer-name">${esc(star.name)}</div>
+        <div class="performer-course">${esc(star.course)}</div>
+        <div class="performer-gpa">${star.gpa.toFixed(2)}</div>
+        <div class="performer-gpa-label">GPA</div>
+      </div>`;
+  }
 }
 
-/* =============================================
-   Student table
-   ============================================= */
+/* ── Student Table ───────────────────── */
 function renderTable() {
   const q    = document.getElementById('search-input').value.toLowerCase().trim();
   let list   = students.filter(s =>
@@ -126,7 +131,6 @@ function renderTable() {
     String(s.id).includes(q)
   );
 
-  /* Sort */
   list.sort((a, b) => {
     let av = a[sortCol], bv = b[sortCol];
     if (typeof av === 'string') av = av.toLowerCase();
@@ -148,23 +152,24 @@ function renderTable() {
 
   tbody.innerHTML = list.map(s => `
     <tr>
-      <td><span style="color:var(--text-3);font-size:.8rem">#</span>${s.id}</td>
+      <td><span class="id-chip">#${s.id}</span></td>
       <td><strong>${esc(s.name)}</strong></td>
-      <td>${s.age}</td>
-      <td>${esc(s.course)}</td>
-      <td>${gpaBadge(s.gpa)}</td>
+      <td style="color:var(--t2)">${s.age}</td>
+      <td style="color:var(--t2)">${esc(s.course)}</td>
+      <td>${gpaChip(s.gpa)}</td>
       <td>
-        <div class="action-btns">
-          <button class="btn-icon btn-edit" onclick="openModal(${s.id})" title="Edit">
+        <div class="action-row">
+          <button class="icon-btn edit-btn" onclick="openModal(${s.id})" title="Edit">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
-          <button class="btn-icon btn-delete" onclick="confirmDelete(${s.id}, '${esc(s.name)}')" title="Delete">
+          <button class="icon-btn del-btn" onclick="confirmDelete(${s.id},'${esc(s.name)}')" title="Delete">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
             </svg>
           </button>
         </div>
@@ -173,25 +178,17 @@ function renderTable() {
 }
 
 function sortBy(col) {
-  if (sortCol === col) sortDir *= -1;
-  else { sortCol = col; sortDir = 1; }
-  /* Update icons */
-  document.querySelectorAll('.sort-icon').forEach(el => {
-    el.textContent = '↕';
-    el.classList.remove('active');
-  });
-  const icon = document.querySelector(`.sort-icon[data-col="${col}"]`);
-  if (icon) { icon.textContent = sortDir === 1 ? '↑' : '↓'; icon.classList.add('active'); }
+  sortDir = (sortCol === col) ? sortDir * -1 : 1;
+  sortCol = col;
+  document.querySelectorAll('.si').forEach(el => { el.textContent = '↕'; el.classList.remove('on'); });
+  const icon = document.querySelector(`.si[data-col="${col}"]`);
+  if (icon) { icon.textContent = sortDir === 1 ? '↑' : '↓'; icon.classList.add('on'); }
   renderTable();
 }
 
-/* =============================================
-   Add / Edit modal
-   ============================================= */
+/* ── Add / Edit Modal ────────────────── */
 function openModal(id = null) {
-  const form  = document.getElementById('student-form');
-  const title = document.getElementById('modal-title');
-  const btn   = document.getElementById('form-submit-btn');
+  const form = document.getElementById('student-form');
   form.reset();
   document.getElementById('form-error').classList.add('hidden');
 
@@ -203,23 +200,23 @@ function openModal(id = null) {
     document.getElementById('f-age').value    = s.age;
     document.getElementById('f-course').value = s.course;
     document.getElementById('f-gpa').value    = s.gpa;
-    title.textContent = 'Edit Student';
-    btn.textContent   = 'Save Changes';
+    document.getElementById('modal-title').textContent = 'Edit Student';
+    document.getElementById('form-btn').textContent    = 'Save Changes';
   } else {
     document.getElementById('edit-id').value = '';
-    title.textContent = 'Add Student';
-    btn.textContent   = 'Add Student';
+    document.getElementById('modal-title').textContent = 'Add Student';
+    document.getElementById('form-btn').textContent    = 'Add Student';
   }
   document.getElementById('modal-overlay').classList.remove('hidden');
-  setTimeout(() => document.getElementById('f-name').focus(), 50);
+  setTimeout(() => document.getElementById('f-name').focus(), 60);
 }
 
-function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
-function closeModalOutside(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+function closeModal()    { document.getElementById('modal-overlay').classList.add('hidden'); }
+function closeModalOut(e){ if (e.target === document.getElementById('modal-overlay')) closeModal(); }
 
 async function submitStudent(e) {
   e.preventDefault();
-  const errEl = document.getElementById('form-error');
+  const errEl  = document.getElementById('form-error');
   errEl.classList.add('hidden');
 
   const id     = document.getElementById('edit-id').value;
@@ -228,20 +225,17 @@ async function submitStudent(e) {
   const course = document.getElementById('f-course').value.trim();
   const gpa    = parseFloat(document.getElementById('f-gpa').value);
 
-  if (!name) { showFormError('Name is required.'); return; }
-  if (isNaN(age) || age < 1) { showFormError('Enter a valid age.'); return; }
-  if (isNaN(gpa) || gpa < 0 || gpa > 4) { showFormError('GPA must be between 0.00 and 4.00.'); return; }
+  if (!name)                    { showFErr('Name is required.'); return; }
+  if (isNaN(age) || age < 1)   { showFErr('Enter a valid age.'); return; }
+  if (isNaN(gpa) || gpa < 0 || gpa > 4) { showFErr('GPA must be 0.00 – 4.00.'); return; }
 
-  const btn = document.getElementById('form-submit-btn');
-  btn.disabled = true;
-  btn.textContent = id ? 'Saving…' : 'Adding…';
+  const btn = document.getElementById('form-btn');
+  btn.disabled = true; btn.textContent = id ? 'Saving…' : 'Adding…';
 
   try {
-    const method = id ? 'PUT' : 'POST';
-    const url    = id ? `${API}/api/students?id=${id}` : `${API}/api/students`;
-    const res    = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
+    const res  = await fetch(id ? `${API}/api/students?id=${id}` : `${API}/api/students`, {
+      method: id ? 'PUT' : 'POST',
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ name, age, course, gpa })
     });
     const data = await res.json();
@@ -250,96 +244,66 @@ async function submitStudent(e) {
       showToast(id ? 'Student updated!' : 'Student added!', 'success');
       await loadStudents();
     } else {
-      showFormError(data.error || 'Something went wrong.');
+      showFErr(data.error || 'Something went wrong.');
     }
-  } catch {
-    showFormError('Network error. Try again.');
-  }
+  } catch { showFErr('Network error. Try again.'); }
+
   btn.disabled = false;
   btn.textContent = id ? 'Save Changes' : 'Add Student';
 }
 
-function showFormError(msg) {
+function showFErr(msg) {
   const el = document.getElementById('form-error');
-  el.textContent = msg;
-  el.classList.remove('hidden');
+  el.textContent = msg; el.classList.remove('hidden');
 }
 
-/* =============================================
-   Delete confirmation
-   ============================================= */
+/* ── Delete Confirm ──────────────────── */
 function confirmDelete(id, name) {
   pendingDeleteId = id;
   document.getElementById('confirm-name').textContent = name;
   document.getElementById('confirm-overlay').classList.remove('hidden');
 }
-function closeConfirm() {
-  pendingDeleteId = null;
-  document.getElementById('confirm-overlay').classList.add('hidden');
-}
-function closeConfirmOutside(e) { if (e.target === document.getElementById('confirm-overlay')) closeConfirm(); }
+function closeConfirm()    { pendingDeleteId = null; document.getElementById('confirm-overlay').classList.add('hidden'); }
+function closeConfirmOut(e){ if (e.target === document.getElementById('confirm-overlay')) closeConfirm(); }
 
-document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+document.getElementById('del-btn').addEventListener('click', async () => {
   if (!pendingDeleteId) return;
-  const btn = document.getElementById('confirm-delete-btn');
-  btn.textContent = 'Deleting…';
-  btn.disabled = true;
+  const btn = document.getElementById('del-btn');
+  btn.textContent = 'Deleting…'; btn.disabled = true;
   try {
     const res  = await fetch(`${API}/api/students?id=${pendingDeleteId}`, { method: 'DELETE' });
     const data = await res.json();
-    if (data.ok) {
-      closeConfirm();
-      showToast('Student deleted.', 'success');
-      await loadStudents();
-    } else {
-      showToast(data.error || 'Delete failed.', 'error');
-    }
-  } catch {
-    showToast('Network error.', 'error');
-  }
-  btn.textContent = 'Delete';
-  btn.disabled = false;
+    if (data.ok) { closeConfirm(); showToast('Student deleted.', 'success'); await loadStudents(); }
+    else showToast(data.error || 'Delete failed.', 'error');
+  } catch { showToast('Network error.', 'error'); }
+  btn.textContent = 'Delete'; btn.disabled = false;
 });
 
-/* =============================================
-   Toast
-   ============================================= */
+/* ── Toast ───────────────────────────── */
 let toastTimer;
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast ${type}`;
+  t.textContent = msg; t.className = `toast ${type}`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.add('hidden'), 3000);
 }
 
-/* =============================================
-   Helpers
-   ============================================= */
-function esc(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+/* ── Helpers ─────────────────────────── */
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function gpaBadge(gpa) {
-  const cls = gpa >= 3.5 ? 'gpa-high' : gpa >= 2.5 ? 'gpa-mid' : 'gpa-low';
-  return `<span class="gpa-badge ${cls}">${Number(gpa).toFixed(2)}</span>`;
+function gpaChip(gpa) {
+  const cls = gpa >= 3.5 ? 'gpa-hi' : gpa >= 2.5 ? 'gpa-md' : 'gpa-lo';
+  return `<span class="gpa-chip ${cls}">${Number(gpa).toFixed(2)}</span>`;
 }
 
-/* =============================================
-   Keyboard shortcuts
-   ============================================= */
+/* ── Keyboard ────────────────────────── */
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeModal();
-    closeConfirm();
-  }
+  if (e.key === 'Escape') { closeModal(); closeConfirm(); }
 });
 
-/* =============================================
-   Init
-   ============================================= */
+/* ── Init ────────────────────────────── */
 if (isLoggedIn()) showApp();
