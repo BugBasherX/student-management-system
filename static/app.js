@@ -305,5 +305,20 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal(); closeConfirm(); }
 });
 
+/* ── Theme ───────────────────────────── */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const isDark = theme === 'dark';
+  document.getElementById('icon-sun').classList.toggle('hidden', !isDark);
+  document.getElementById('icon-moon').classList.toggle('hidden', isDark);
+  localStorage.setItem('sms_theme', theme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
 /* ── Init ────────────────────────────── */
+applyTheme(localStorage.getItem('sms_theme') || 'dark');
 if (isLoggedIn()) showApp();
