@@ -8,7 +8,7 @@ A terminal-based Student Management System written in C.
 - Storage: binary flat file (`students.dat`)
 
 ## How to run
-The workflow compiles and launches the program automatically. Use the Shell to interact with it.
+The workflow compiles and launches the program in the terminal automatically.
 
 ```
 gcc -o student_mgmt main.c login.c student.c && ./student_mgmt
