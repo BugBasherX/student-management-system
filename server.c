@@ -159,11 +159,13 @@ static const char *status_text(int code) {
 }
 
 static void send_headers(int fd, int code, const char *ct, int len) {
-    char hdr[512];
+    char hdr[640];
     snprintf(hdr, sizeof(hdr),
         "HTTP/1.1 %d %s\r\n"
         "Content-Type: %s\r\n"
         "Content-Length: %d\r\n"
+        "Cache-Control: no-store, no-cache, must-revalidate\r\n"
+        "Pragma: no-cache\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS\r\n"
         "Access-Control-Allow-Headers: Content-Type\r\n"
