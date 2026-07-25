@@ -39,6 +39,8 @@ void deleteStudent(void);
 void sortMenu     (void);
 void statistics   (void);
 void exportCSV    (void);
+void topStudents  (void);   /* top-N leaderboard by GPA      */
+void courseRoster (void);   /* all students in a given course */
 
 /* Utilities */
 int   countStudents(void);

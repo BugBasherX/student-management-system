@@ -1,5 +1,5 @@
 /*
- * student.c — CRUD, search, sort, statistics, export
+ * student.c — CRUD, search, sort, statistics, export, leaderboard, roster
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,53 +77,42 @@ static void sortArr(Student *arr, int n, SortKey key) {
 /* ── Table rendering ─────────────────────────────────────── */
 
 #define PAGE_SIZE 10
-
-/* Column widths (inner content only) */
 #define W_ID   4
 #define W_NAME 22
 #define W_AGE  3
 #define W_CRS  18
 #define W_GPA  4
 #define W_YR   4
-/* Total inner chars: 1+W_ID+2+W_NAME+2+W_AGE+2+W_CRS+2+W_GPA+1+2+W_YR+1 = 76 */
 
 static void printTableHeader(void) {
-    /* Top border */
-    printf(C_CYAN BOX_TL BOX_H BOX_H BOX_H BOX_H BOX_H       /* ID */
-           BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H
-           BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H  /* Name */
-           BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H
-           BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H              /* Age */
-           BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H
-           BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H  /* Course */
-           BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H
-           BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H        /* GPA+Grade */
-           BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H BOX_H  /* Year */
-           BOX_TR C_RESET "\n");
-    /* Header row */
+    /* Top border — 76 ═ chars between the two corner pieces */
+    printf(C_CYAN BOX_TL);
+    for (int i = 0; i < BOX_WIDTH - 2; i++) printf(BOX_H);
+    printf(BOX_TR C_RESET "\n");
+
     printf(C_CYAN BOX_V C_RESET
            C_BOLD C_BWHITE
            " %-*s  %-*s  %-*s  %-*s  %-*s  %-*s "
            C_RESET
            C_CYAN BOX_V C_RESET "\n",
-           W_ID,   "ID",
-           W_NAME, "Name",
-           W_AGE,  "Age",
-           W_CRS,  "Course",
-           W_GPA+2,"GPA",
-           W_YR,   "Year");
-    /* Separator */
+           W_ID,       "ID",
+           W_NAME,     "Name",
+           W_AGE,      "Age",
+           W_CRS,      "Course",
+           W_GPA + 2,  "GPA",
+           W_YR,       "Year");
+
     printf(C_CYAN BOX_ML);
     for (int i = 0; i < BOX_WIDTH - 2; i++) printf(BOX_H);
     printf(BOX_MR C_RESET "\n");
 }
 
 static void printTableRow(const Student *s, int rowNum) {
-    const char *col = (rowNum % 2 == 0) ? C_DIM : C_RESET;
+    const char *dim = (rowNum % 2 == 0) ? C_DIM : C_RESET;
     printf(C_CYAN BOX_V C_RESET "%s"
            " %-*d  %-*.*s  %-*d  %-*.*s  %s%*.2f%s  %-*d "
            C_RESET C_CYAN BOX_V C_RESET "\n",
-           col,
+           dim,
            W_ID,   s->id,
            W_NAME, W_NAME, s->name,
            W_AGE,  s->age,
@@ -138,13 +127,12 @@ static void printTableFooter(void) {
     printf(BOX_BR C_RESET "\n");
 }
 
-/* Paginated display; returns after user quits */
 static void displayTable(Student *arr, int n, SortKey key, const char *title) {
     if (n == 0) { printWarning("No records to display."); return; }
 
     sortArr(arr, n, key);
 
-    int page = 0;
+    int page  = 0;
     int pages = (n + PAGE_SIZE - 1) / PAGE_SIZE;
 
     while (1) {
@@ -153,10 +141,10 @@ static void displayTable(Student *arr, int n, SortKey key, const char *title) {
         printHLine(BOX_TL, BOX_H, BOX_TR);
         printBoxTitle(title);
         printHLine(BOX_ML, BOX_H, BOX_MR);
-        /* Status line */
+
         char status[BOX_WIDTH];
         snprintf(status, sizeof(status),
-                 "  Total: %d student%s   Page %d of %d",
+                 "Total: %d student%s   Page %d of %d",
                  n, n == 1 ? "" : "s", page + 1, pages);
         printf(BOX_V " " C_DIM "%-*s" C_RESET BOX_V "\n",
                BOX_WIDTH - 3, status);
@@ -165,17 +153,15 @@ static void displayTable(Student *arr, int n, SortKey key, const char *title) {
         printTableHeader();
 
         int start = page * PAGE_SIZE;
-        int end   = start + PAGE_SIZE;
-        if (end > n) end = n;
+        int end   = start + PAGE_SIZE < n ? start + PAGE_SIZE : n;
         for (int i = start; i < end; i++)
             printTableRow(&arr[i], i - start);
 
         printTableFooter();
 
-        /* Navigation */
         printf("\n  " C_DIM);
-        if (page > 0)      printf("[P] Prev  ");
-        if (page < pages - 1) printf("[N] Next  ");
+        if (page > 0)           printf("[P] Prev  ");
+        if (page < pages - 1)   printf("[N] Next  ");
         printf("[Q] Back" C_RESET "   ");
         fflush(stdout);
 
@@ -189,7 +175,7 @@ static void displayTable(Student *arr, int n, SortKey key, const char *title) {
     }
 }
 
-/* ── Public API ──────────────────────────────────────────── */
+/* ── Public: utilities ───────────────────────────────────── */
 
 int countStudents(void) {
     FILE *f = fopen(DATA_FILE, "rb");
@@ -227,18 +213,17 @@ void addStudent(void) {
     printBoxTitle("ADD NEW STUDENT");
     printHLine(BOX_ML, BOX_H, BOX_MR);
     printBoxBlank();
-    printf(BOX_V "  " C_DIM "Auto-assigned ID: " C_BWHITE "%d" C_RESET
-           "%*s" BOX_V "\n", s.id, BOX_WIDTH - 24 - (s.id > 999 ? 4 : s.id > 99 ? 3 : s.id > 9 ? 2 : 1), "");
-    printBoxBlank();
-    printHLine(BOX_ML, BOX_H, BOX_MR);
+    printf(BOX_V "  " C_DIM "Auto-assigned ID: " C_BWHITE "%d"
+           C_RESET "%*s" BOX_V "\n",
+           s.id, BOX_WIDTH - 24 - (s.id > 99 ? 3 : s.id > 9 ? 2 : 1), "");
     printBoxBlank();
     printHLine(BOX_BL, BOX_H, BOX_BR);
     printf("\n");
 
     readString("Full Name        : ", s.name,   MAX_NAME);
-    s.age = readInt("Age (15–100)     : ", 15, 100);
+    s.age = readInt("Age (15-100)     : ", 15, 100);
     readString("Course           : ", s.course, MAX_COURSE);
-    s.gpa = readFloat("GPA (0.00–4.00)  : ", 0.0f, 4.0f);
+    s.gpa = readFloat("GPA (0.00-4.00)  : ", 0.0f, 4.0f);
     readString("Email            : ", s.email,  MAX_EMAIL);
     readString("Phone            : ", s.phone,  MAX_PHONE);
 
@@ -246,7 +231,6 @@ void addStudent(void) {
     int curYear = (int)(localtime(&t)->tm_year + 1900);
     s.year = readInt("Enrollment Year  : ", 1990, curYear);
 
-    /* Append */
     FILE *f = fopen(DATA_FILE, "ab");
     if (!f) { printError("Could not open data file."); return; }
     fwrite(&s, sizeof(Student), 1, f);
@@ -339,21 +323,21 @@ void updateStudent(void) {
 
     if (idx < 0) {
         printError("Student not found.");
-        free(arr);
-        pauseScreen();
-        return;
+        free(arr); pauseScreen(); return;
     }
 
     Student *s = &arr[idx];
-    printf("\n  " C_DIM "Leave blank to keep current value.\n\n" C_RESET);
+    printf("\n  " C_DIM "Leave blank to keep the current value.\n\n" C_RESET);
 
-    char prompt[128];
+    char prompt[128], tmp[64];
+    int  parsed;
+    float fp;
+
     snprintf(prompt, sizeof(prompt), "Name   [%s]: ", s->name);
     readStringOpt(prompt, s->name, MAX_NAME);
 
     printf("  Age    [%d]: ", s->age);
     fflush(stdout);
-    char tmp[32]; int parsed;
     if (fgets(tmp, sizeof(tmp), stdin) && sscanf(tmp, "%d", &parsed) == 1)
         if (parsed >= 15 && parsed <= 100) s->age = parsed;
 
@@ -362,7 +346,6 @@ void updateStudent(void) {
 
     printf("  GPA    [%.2f]: ", s->gpa);
     fflush(stdout);
-    float fp;
     if (fgets(tmp, sizeof(tmp), stdin) && sscanf(tmp, "%f", &fp) == 1)
         if (fp >= 0.0f && fp <= 4.0f) s->gpa = fp;
 
@@ -401,9 +384,7 @@ void deleteStudent(void) {
 
     if (idx < 0) {
         printError("Student not found.");
-        free(arr);
-        pauseScreen();
-        return;
+        free(arr); pauseScreen(); return;
     }
 
     Student *s = &arr[idx];
@@ -416,12 +397,9 @@ void deleteStudent(void) {
     char ch[8];
     if (!fgets(ch, sizeof(ch), stdin) || tolower((unsigned char)ch[0]) != 'y') {
         printInfo("Delete cancelled.");
-        free(arr);
-        pauseScreen();
-        return;
+        free(arr); pauseScreen(); return;
     }
 
-    /* Shift records */
     for (int i = idx; i < n - 1; i++) arr[i] = arr[i + 1];
     n--;
 
@@ -442,13 +420,13 @@ void sortMenu(void) {
     printBoxTitle("SORT & VIEW STUDENTS");
     printHLine(BOX_ML, BOX_H, BOX_MR);
     printf(BOX_V "  " C_CYAN "[1]" C_RESET " By ID              "
-                  C_CYAN "[4]" C_RESET " By GPA (Low → High)"
+                  C_CYAN "[4]" C_RESET " By GPA (Low to High)"
            "  " BOX_V "\n");
-    printf(BOX_V "  " C_CYAN "[2]" C_RESET " By Name (A → Z)    "
-                  C_CYAN "[5]" C_RESET " By Age             "
+    printf(BOX_V "  " C_CYAN "[2]" C_RESET " By Name (A to Z)   "
+                  C_CYAN "[5]" C_RESET " By Age              "
            "  " BOX_V "\n");
-    printf(BOX_V "  " C_CYAN "[3]" C_RESET " By GPA (High → Low)"
-                  C_CYAN "[6]" C_RESET " By Course          "
+    printf(BOX_V "  " C_CYAN "[3]" C_RESET " By GPA (High to Low)"
+                  C_CYAN "[6]" C_RESET " By Course           "
            "  " BOX_V "\n");
     printf(BOX_V "  " C_CYAN "[7]" C_RESET " By Enrollment Year "
            "%*s" BOX_V "\n", BOX_WIDTH - 30, "");
@@ -484,7 +462,7 @@ void statistics(void) {
 
     float sum = 0, hi = arr[0].gpa, lo = arr[0].gpa;
     int hiIdx = 0, loIdx = 0;
-    int gradeCount[5] = {0};   /* A B C D F */
+    int gradeCount[5] = {0};
 
     for (int i = 0; i < n; i++) {
         sum += arr[i].gpa;
@@ -498,54 +476,42 @@ void statistics(void) {
     }
     float avg = sum / n;
 
-    /* Summary */
     printBoxBlank();
     printf(BOX_V "  " C_BOLD "Total Students  " C_RESET ": "
-           C_BWHITE "%d" C_RESET
-           "%*s" BOX_V "\n", n, BOX_WIDTH - 22 - (n > 99 ? 3 : n > 9 ? 2 : 1), "");
-
+           C_BWHITE "%d" C_RESET "%*s" BOX_V "\n",
+           n, BOX_WIDTH - 22 - (n > 99 ? 3 : n > 9 ? 2 : 1), "");
     printf(BOX_V "  " C_BOLD "Average GPA     " C_RESET ": "
-           "%s%.2f" C_RESET " (%s)"
-           "%*s" BOX_V "\n",
-           gpaColor(avg), avg, gpaGrade(avg),
-           BOX_WIDTH - 30, "");
-
+           "%s%.2f" C_RESET " (%s)%*s" BOX_V "\n",
+           gpaColor(avg), avg, gpaGrade(avg), BOX_WIDTH - 30, "");
     printf(BOX_V "  " C_BOLD "Highest GPA     " C_RESET ": "
-           C_BGREEN "%.2f" C_RESET " — %s (%s)"
-           "%*s" BOX_V "\n",
+           C_BGREEN "%.2f" C_RESET " - %s (%s)%*s" BOX_V "\n",
            hi, arr[hiIdx].name, arr[hiIdx].course,
            (int)(BOX_WIDTH - 27 - strlen(arr[hiIdx].name) - strlen(arr[hiIdx].course)), "");
-
     printf(BOX_V "  " C_BOLD "Lowest GPA      " C_RESET ": "
-           C_BRED "%.2f" C_RESET " — %s (%s)"
-           "%*s" BOX_V "\n",
+           C_BRED "%.2f" C_RESET " - %s (%s)%*s" BOX_V "\n",
            lo, arr[loIdx].name, arr[loIdx].course,
            (int)(BOX_WIDTH - 27 - strlen(arr[loIdx].name) - strlen(arr[loIdx].course)), "");
-
     printBoxBlank();
     printHLine(BOX_ML, BOX_H, BOX_MR);
     printBoxBlank();
-
-    /* GPA Distribution bar chart */
     printf(BOX_V "  " C_BOLD C_BWHITE "GPA Distribution" C_RESET
            "%*s" BOX_V "\n", BOX_WIDTH - 19, "");
     printBoxBlank();
 
-    const char *labels[]  = {"A  (≥ 3.5)", "B  (≥ 3.0)", "C  (≥ 2.0)", "D  (≥ 1.0)", "F  (< 1.0)"};
+    const char *labels[]  = {"A  (>=3.5)", "B  (>=3.0)", "C  (>=2.0)", "D  (>=1.0)", "F  (<1.0) "};
     const char *barCols[] = {C_BGREEN, C_BBLUE, C_BYELLOW, C_YELLOW, C_BRED};
     int maxBar = 30;
 
     for (int g = 0; g < 5; g++) {
-        int cnt   = gradeCount[g];
-        int bars  = (n > 0) ? (cnt * maxBar / n) : 0;
-        int pct   = (n > 0) ? (cnt * 100 / n)   : 0;
+        int cnt  = gradeCount[g];
+        int bars = (n > 0) ? (cnt * maxBar / n) : 0;
+        int pct  = (n > 0) ? (cnt * 100 / n)   : 0;
 
         printf(BOX_V "  %s%-10s" C_RESET " %s",
                barCols[g], labels[g], barCols[g]);
-        for (int b = 0; b < bars; b++) printf("█");
-        printf(C_RESET C_DIM " %d (%d%%)" C_RESET,  cnt, pct);
+        for (int b = 0; b < bars; b++) printf("\xe2\x96\x88");   /* UTF-8 █ */
+        printf(C_RESET C_DIM " %d (%d%%)" C_RESET, cnt, pct);
 
-        /* right-pad to box width */
         int used = 2 + 10 + 1 + bars + 2 + (cnt > 9 ? 2 : 1) + 6;
         int pad  = BOX_WIDTH - 2 - used;
         if (pad < 0) pad = 0;
@@ -554,7 +520,6 @@ void statistics(void) {
 
     printBoxBlank();
     printHLine(BOX_BL, BOX_H, BOX_BR);
-
     free(arr);
     pauseScreen();
 }
@@ -584,5 +549,139 @@ void exportCSV(void) {
     printf("  " C_DIM "Saved to: " C_BCYAN "%s" C_RESET
            C_DIM "  (%d record%s)\n" C_RESET,
            path, n, n == 1 ? "" : "s");
+    pauseScreen();
+}
+
+/* ── Top-N Leaderboard ───────────────────────────────────── */
+
+void topStudents(void) {
+    Student *arr;
+    int n = loadAll(&arr);
+    if (n == 0) { printWarning("No students on record."); pauseScreen(); return; }
+
+    printf("\n");
+    int topN = readInt("Show top how many students? (1-50): ", 1, 50);
+    if (topN > n) topN = n;
+
+    /* Sort by GPA descending */
+    sortArr(arr, n, SORT_GPA_DESC);
+
+    clearScreen();
+    printf("\n");
+    printHLine(BOX_TL, BOX_H, BOX_TR);
+
+    char title[64];
+    snprintf(title, sizeof(title), "TOP %d STUDENTS BY GPA", topN);
+    printBoxTitle(title);
+    printHLine(BOX_ML, BOX_H, BOX_MR);
+
+    /* Header */
+    printf(C_CYAN BOX_V C_RESET
+           C_BOLD C_BWHITE
+           " %-4s  %-22s  %-18s  %-6s  %-4s "
+           C_RESET C_CYAN BOX_V C_RESET "\n",
+           "Rank", "Name", "Course", "GPA", "Year");
+    printf(C_CYAN BOX_ML);
+    for (int i = 0; i < BOX_WIDTH - 2; i++) printf(BOX_H);
+    printf(BOX_MR C_RESET "\n");
+
+    for (int i = 0; i < topN; i++) {
+        Student *s = &arr[i];
+        const char *medal = "";
+        if      (i == 0) medal = C_BYELLOW " \xf0\x9f\xa5\x87 " C_RESET; /* gold   */
+        else if (i == 1) medal = C_BWHITE  " \xf0\x9f\xa5\x88 " C_RESET; /* silver */
+        else if (i == 2) medal = C_YELLOW  " \xf0\x9f\xa5\x89 " C_RESET; /* bronze */
+
+        const char *dim = (i % 2 == 0) ? C_DIM : C_RESET;
+        if (i < 3)
+            printf(C_CYAN BOX_V C_RESET " %s%-2d%s  %-22.*s  %-18.*s  %s%6.2f%s  %-4d "
+                   C_CYAN BOX_V C_RESET "\n",
+                   medal, i + 1, C_RESET,
+                   22, s->name, 18, s->course,
+                   gpaColor(s->gpa), s->gpa, C_RESET, s->year);
+        else
+            printf(C_CYAN BOX_V C_RESET "%s"
+                   " %-4d  %-22.*s  %-18.*s  %s%6.2f%s  %-4d "
+                   C_RESET C_CYAN BOX_V C_RESET "\n",
+                   dim, i + 1,
+                   22, s->name, 18, s->course,
+                   gpaColor(s->gpa), s->gpa, C_RESET, s->year);
+    }
+
+    printf(C_CYAN BOX_BL);
+    for (int i = 0; i < BOX_WIDTH - 2; i++) printf(BOX_H);
+    printf(BOX_BR C_RESET "\n");
+
+    free(arr);
+    pauseScreen();
+}
+
+/* ── Course Roster ───────────────────────────────────────── */
+
+void courseRoster(void) {
+    Student *arr;
+    int n = loadAll(&arr);
+    if (n == 0) { printWarning("No students on record."); pauseScreen(); return; }
+
+    printf("\n");
+    char query[64];
+    readString("Course name (partial match): ", query, sizeof(query));
+
+    /* Collect matches */
+    Student *matches = malloc(n * sizeof(Student));
+    int mn = 0;
+    for (int i = 0; i < n; i++)
+        if (containsCI(arr[i].course, query)) matches[mn++] = arr[i];
+
+    free(arr);
+
+    if (mn == 0) {
+        printWarning("No students found for that course.");
+        free(matches); pauseScreen(); return;
+    }
+
+    /* Compute stats */
+    float sum = 0, hi = matches[0].gpa, lo = matches[0].gpa;
+    int hiIdx = 0;
+    for (int i = 0; i < mn; i++) {
+        sum += matches[i].gpa;
+        if (matches[i].gpa > hi) { hi = matches[i].gpa; hiIdx = i; }
+        if (matches[i].gpa < lo)   lo = matches[i].gpa;
+    }
+    float avg = sum / mn;
+
+    char title[80];
+    snprintf(title, sizeof(title), "COURSE ROSTER: %s", query);
+
+    /* Convert to uppercase for title */
+    for (int i = 0; title[i]; i++)
+        title[i] = (char)toupper((unsigned char)title[i]);
+
+    displayTable(matches, mn, SORT_GPA_DESC, title);
+
+    /* Summary panel */
+    clearScreen();
+    printf("\n");
+    printHLine(BOX_TL, BOX_H, BOX_TR);
+    printBoxTitle("COURSE SUMMARY");
+    printHLine(BOX_ML, BOX_H, BOX_MR);
+    printBoxBlank();
+    printf(BOX_V "  " C_BOLD "Enrolled Students : " C_RESET
+           C_BWHITE "%d" C_RESET "%*s" BOX_V "\n",
+           mn, BOX_WIDTH - 24 - (mn > 9 ? 2 : 1), "");
+    printf(BOX_V "  " C_BOLD "Average GPA       : " C_RESET
+           "%s%.2f" C_RESET " (%s)%*s" BOX_V "\n",
+           gpaColor(avg), avg, gpaGrade(avg), BOX_WIDTH - 32, "");
+    printf(BOX_V "  " C_BOLD "Highest GPA       : " C_RESET
+           C_BGREEN "%.2f" C_RESET " - %s%*s" BOX_V "\n",
+           hi, matches[hiIdx].name,
+           (int)(BOX_WIDTH - 29 - strlen(matches[hiIdx].name)), "");
+    printf(BOX_V "  " C_BOLD "Lowest GPA        : " C_RESET
+           C_BRED "%.2f" C_RESET "%*s" BOX_V "\n",
+           lo, BOX_WIDTH - 27, "");
+    printBoxBlank();
+    printHLine(BOX_BL, BOX_H, BOX_BR);
+
+    free(matches);
     pauseScreen();
 }
