@@ -9,32 +9,57 @@ Guidelines for building, extending, and maintaining this project.
 ### Requirements
 
 - GCC with C99 support
-- A POSIX-compatible system (Linux, macOS, or Windows WSL)
-- A UTF-8 terminal
+- Any terminal (Linux, macOS, Windows PowerShell, cmd.exe)
+- No external libraries
 
-### Compile
-
-```bash
-gcc -o student_mgmt main.c login.c student.c ui.c backup.c
-```
-
-### Compile with warnings (recommended while developing)
+### Compile & run — macOS / Linux / WSL
 
 ```bash
-gcc -Wall -Wextra -std=c99 -o student_mgmt main.c login.c student.c ui.c backup.c
-```
-
-### Run
-
-```bash
+gcc -Wall -Wextra -o student_mgmt main.c login.c student.c ui.c backup.c
 ./student_mgmt
 ```
 
-### Clean
+### Compile & run — Windows PowerShell
 
+PowerShell does not support `&&` — run two separate lines:
+
+```powershell
+gcc -Wall -Wextra -o student_mgmt.exe main.c login.c student.c ui.c backup.c
+./student_mgmt.exe
+```
+
+### Compile & run — Windows cmd.exe
+
+`&&` works in cmd.exe:
+
+```cmd
+gcc -Wall -Wextra -o student_mgmt.exe main.c login.c student.c ui.c backup.c && student_mgmt.exe
+```
+
+### Windows GCC setup (one-time)
+
+1. Install [MSYS2](https://www.msys2.org)
+2. In the MSYS2 terminal run: `pacman -S mingw-w64-ucrt-x86_64-gcc`
+3. Add `C:\msys64\ucrt64\bin` to your Windows PATH
+
+### Clean build artefacts
+
+**macOS / Linux:**
 ```bash
 rm -f student_mgmt students.dat admin.cfg students_export.csv
 rm -rf backups/
+```
+
+**Windows PowerShell:**
+```powershell
+Remove-Item -ErrorAction SilentlyContinue student_mgmt.exe, students.dat, admin.cfg, students_export.csv
+Remove-Item -Recurse -ErrorAction SilentlyContinue backups
+```
+
+**Windows cmd.exe:**
+```cmd
+del /q student_mgmt.exe students.dat admin.cfg students_export.csv 2>nul
+rmdir /s /q backups 2>nul
 ```
 
 ---
@@ -164,10 +189,12 @@ printHLine(BOX_BL, BOX_H, BOX_BR);   /* bottom border */
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
+| `&&` error in PowerShell | PowerShell doesn't support `&&` | Run compile and run as two separate lines |
+| `termios.h` not found on Windows | POSIX header missing | Not needed — `login.c` uses `conio.h` on Windows automatically |
+| `_mkdir` not found | Wrong header included | `backup.c` includes `<direct.h>` on Windows via `#ifdef _WIN32` |
 | Students lost after recompile | Struct layout changed | Delete `students.dat` and re-enter data |
 | Box borders misaligned | printf width arithmetic wrong | Count inner chars: must total `BOX_WIDTH - 2` |
-| Password masking not working | Running on Windows without WSL | Use WSL or stub out `termios` calls |
-| Garbled box characters | Terminal not set to UTF-8 | Set `LANG=en_US.UTF-8` or use a UTF-8 terminal |
+| Garbled box characters | Terminal not set to UTF-8 | Use Windows Terminal (UTF-8 by default); avoid old cmd.exe |
 | Partial backup name shown | `strncpy` missing null terminator | Always set `buf[maxlen-1] = '\0'` after strncpy |
 
 ---

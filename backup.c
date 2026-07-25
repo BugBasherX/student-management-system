@@ -1,15 +1,24 @@
 /*
  * backup.c — Backup and restore for students.dat
+ *
+ * Cross-platform: uses _mkdir on Windows, mkdir on POSIX.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <sys/stat.h>
 #include <dirent.h>
 #include "backup.h"
 #include "student.h"
 #include "ui.h"
+
+#ifdef _WIN32
+  #include <direct.h>
+  #define MAKE_DIR(p) _mkdir(p)
+#else
+  #include <sys/stat.h>
+  #define MAKE_DIR(p) mkdir((p), 0755)
+#endif
 
 #define BACKUP_DIR  "backups"
 #define MAX_BACKUPS 64
@@ -33,10 +42,9 @@ static int copyFile(const char *src, const char *dst) {
 }
 
 static void ensureBackupDir(void) {
-    mkdir(BACKUP_DIR, 0755);   /* no-op if already exists */
+    MAKE_DIR(BACKUP_DIR);   /* no-op if already exists */
 }
 
-/* Collect backup filenames (sorted alphabetically = chronologically) */
 static int listBackups(char names[][256], int maxn) {
     DIR *d = opendir(BACKUP_DIR);
     if (!d) return 0;
@@ -44,13 +52,12 @@ static int listBackups(char names[][256], int maxn) {
     int count = 0;
     struct dirent *ent;
     while ((ent = readdir(d)) && count < maxn) {
-        /* Only files that start with "students_" */
         if (strncmp(ent->d_name, "students_", 9) == 0)
             strncpy(names[count++], ent->d_name, 255);
     }
     closedir(d);
 
-    /* Bubble sort (list is small) */
+    /* Bubble sort — list is always small */
     for (int i = 0; i < count - 1; i++)
         for (int j = i + 1; j < count; j++)
             if (strcmp(names[i], names[j]) > 0) {
@@ -65,7 +72,6 @@ static int listBackups(char names[][256], int maxn) {
 /* ── Public API ──────────────────────────────────────────── */
 
 void createBackup(void) {
-    /* Check data file exists */
     FILE *test = fopen(DATA_FILE, "rb");
     if (!test) {
         printWarning("No student data file found — nothing to back up.");
@@ -76,7 +82,6 @@ void createBackup(void) {
 
     ensureBackupDir();
 
-    /* Timestamp-based filename */
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
     char dst[320];
@@ -87,7 +92,7 @@ void createBackup(void) {
 
     if (copyFile(DATA_FILE, dst)) {
         printSuccess("Backup created successfully.");
-        printf("  " C_DIM "File: " C_BCYAN "%s" C_RESET "\n", dst);
+        printf("  " C_DIM "File   : " C_BCYAN "%s" C_RESET "\n", dst);
         printf("  " C_DIM "Records: " C_BWHITE "%d" C_RESET "\n", countStudents());
     } else {
         printError("Failed to create backup.");
@@ -116,30 +121,28 @@ void restoreBackup(void) {
         return;
     }
 
-    /* List backups newest-first (reverse) */
     for (int i = n - 1; i >= 0; i--) {
-        int idx = n - 1 - i;   /* display index 1…n */
+        int display = n - i;
         printf(BOX_V "  " C_CYAN "[%2d]" C_RESET " %s%*s" BOX_V "\n",
-               idx + 1, names[i],
+               display, names[i],
                (int)(BOX_WIDTH - 10 - strlen(names[i])), "");
     }
     printBoxBlank();
     printHLine(BOX_BL, BOX_H, BOX_BR);
     printf("\n");
 
-    int choice = readInt("Restore backup number (0 to cancel): ", 0, n);
+    int choice = readInt("Restore number (0 to cancel): ", 0, n);
     if (choice == 0) {
         printInfo("Restore cancelled.");
         pauseScreen();
         return;
     }
 
-    /* Reverse mapping: display idx → array idx */
     int arrIdx = n - choice;
     char src[320];
     snprintf(src, sizeof(src), BACKUP_DIR "/%s", names[arrIdx]);
 
-    printf("\n  " C_BYELLOW "⚠  This will overwrite the current student data." C_RESET "\n");
+    printf("\n  " C_BYELLOW "This will overwrite the current student data." C_RESET "\n");
     printf("  Restoring: " C_BCYAN "%s" C_RESET "\n\n", names[arrIdx]);
     printf("  Confirm? [y/N]: ");
     fflush(stdout);
@@ -152,8 +155,7 @@ void restoreBackup(void) {
         return;
     }
 
-    /* Auto-backup current data before overwriting */
-    createBackup();   /* silent if no current data */
+    createBackup();   /* auto-backup current data before overwriting */
 
     if (copyFile(src, DATA_FILE)) {
         printSuccess("Data restored successfully.");

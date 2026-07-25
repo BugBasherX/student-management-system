@@ -1,21 +1,27 @@
 /*
  * login.c — Authentication with masked password + runtime password change
  *
+ * Cross-platform: uses termios on POSIX, conio.h on Windows.
  * Password storage: admin.cfg (plain text, one line).
  * Falls back to compiled-in default if the file is absent.
  */
 #include <stdio.h>
 #include <string.h>
-#include <termios.h>
-#include <unistd.h>
 #include "login.h"
 #include "ui.h"
 
-#define ADMIN_USER     "admin"
-#define DEFAULT_PASS   "admin123"
-#define PASS_FILE      "admin.cfg"
+#ifdef _WIN32
+  #include <conio.h>
+#else
+  #include <termios.h>
+  #include <unistd.h>
+#endif
 
-/* ── Password file helpers ───────────────────────────────── */
+#define ADMIN_USER   "admin"
+#define DEFAULT_PASS "admin123"
+#define PASS_FILE    "admin.cfg"
+
+/* ── Password file ───────────────────────────────────────── */
 
 static void loadPassword(char *buf, int maxlen) {
     FILE *f = fopen(PASS_FILE, "r");
@@ -24,9 +30,9 @@ static void loadPassword(char *buf, int maxlen) {
         buf[maxlen - 1] = '\0';
         return;
     }
-    if (fgets(buf, maxlen, f)) {
+    if (fgets(buf, maxlen, f))
         buf[strcspn(buf, "\r\n")] = '\0';
-    } else {
+    else {
         strncpy(buf, DEFAULT_PASS, maxlen - 1);
         buf[maxlen - 1] = '\0';
     }
@@ -44,13 +50,29 @@ static int savePassword(const char *pass) {
 /* ── Masked input ────────────────────────────────────────── */
 
 static void maskedInput(char *buf, int maxlen) {
+    int i = 0;
+
+#ifdef _WIN32
+    int c;
+    while (i < maxlen - 1) {
+        c = _getch();
+        if (c == '\r' || c == '\n') break;
+        if (c == 8 || c == 127) {          /* backspace */
+            if (i > 0) { i--; printf("\b \b"); fflush(stdout); }
+        } else {
+            buf[i++] = (char)c;
+            printf("*"); fflush(stdout);
+        }
+    }
+    printf("\n");
+#else
     struct termios old, noecho;
     tcgetattr(STDIN_FILENO, &old);
     noecho = old;
     noecho.c_lflag &= ~(ECHO | ICANON);
     tcsetattr(STDIN_FILENO, TCSANOW, &noecho);
 
-    int i = 0, c;
+    int c;
     while (i < maxlen - 1) {
         c = getchar();
         if (c == '\n' || c == EOF) break;
@@ -58,14 +80,14 @@ static void maskedInput(char *buf, int maxlen) {
             if (i > 0) { i--; printf("\b \b"); fflush(stdout); }
         } else {
             buf[i++] = (char)c;
-            printf("*");
-            fflush(stdout);
+            printf("*"); fflush(stdout);
         }
     }
-    buf[i] = '\0';
     printf("\n");
-
     tcsetattr(STDIN_FILENO, TCSANOW, &old);
+#endif
+
+    buf[i] = '\0';
 }
 
 /* ── Public: login ───────────────────────────────────────── */
@@ -82,8 +104,6 @@ int login(char *out_user, int out_size) {
     printHLine(BOX_TL, BOX_H, BOX_TR);
     printBoxBlank();
     printBoxTitle("STUDENT MANAGEMENT SYSTEM  v2.0");
-    printBoxBlank();
-    printBoxTitle("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     printBoxBlank();
     printBoxTitle("Please sign in to continue");
     printBoxBlank();
@@ -120,7 +140,6 @@ void changePassword(void) {
     printHLine(BOX_BL, BOX_H, BOX_BR);
     printf("\n");
 
-    /* Verify current password */
     char current[128];
     printf("  Current password : ");
     fflush(stdout);
@@ -132,7 +151,6 @@ void changePassword(void) {
         return;
     }
 
-    /* Get new password */
     char newpass[128], confirm[128];
 
     printf("  New password     : ");

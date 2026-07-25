@@ -27,10 +27,22 @@ Complete walkthrough of every feature in the application.
 
 ## 1. Starting the Program
 
-Compile once, then run:
+Compile once, then run.
 
+**macOS / Linux / WSL:**
 ```bash
 gcc -o student_mgmt main.c login.c student.c ui.c backup.c && ./student_mgmt
+```
+
+**Windows — PowerShell** (`&&` is not valid — use two lines):
+```powershell
+gcc -o student_mgmt.exe main.c login.c student.c ui.c backup.c
+./student_mgmt.exe
+```
+
+**Windows — cmd.exe:**
+```cmd
+gcc -o student_mgmt.exe main.c login.c student.c ui.c backup.c && student_mgmt.exe
 ```
 
 The login screen appears immediately.
