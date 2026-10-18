@@ -1,0 +1,43 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-linux:
+    name: Build on Ubuntu (Linux)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Compile with GCC
+      run: |
+        gcc -Wall -Wextra -std=c99 -Iinclude src/*.c -o student_mgmt
+
+    - name: Test build output
+      run: |
+        test -f student_mgmt
+        echo "Binary successfully compiled."
+
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Compile with GCC (MinGW)
+      shell: pwsh
+      run: |
+        gcc -Wall -Wextra -std=c99 -Iinclude (Get-Item src/*.c) -o student_mgmt.exe
+
+    - name: Test build output
+      shell: pwsh
+      run: |
+        if (Test-Path student_mgmt.exe) {
+          Write-Host "Binary successfully compiled."
+        } else {
+          exit 1
+        }
