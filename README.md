@@ -1,31 +1,86 @@
 # Student Management System v2.0
 
-A terminal-based Student Management System written in pure C.  
+A terminal-based Student Management System written in pure C (C99).  
 Coloured TUI with box-drawing borders, paginated tables, search, sort, statistics, backup/restore, and more — no external libraries required.
+
+---
+
+## Project Structure
+
+```
+student-management-system/
+├── include/                # Header files (.h)
+│   ├── backup.h
+│   ├── login.h
+│   ├── student.h
+│   └── ui.h
+├── src/                    # Source files (.c)
+│   ├── backup.c
+│   ├── login.c
+│   ├── main.c
+│   ├── student.c
+│   └── ui.c
+├── docs/                   # Full documentation
+│   ├── ARCHITECTURE.md
+│   ├── CHANGELOG.md
+│   ├── CONTRIBUTING.md
+│   └── USAGE.md
+├── Makefile                # Cross-platform build automation
+├── build.bat               # One-click Windows build script
+├── build.sh                # Unix build script
+├── .gitignore              # Ignores binaries, objects, and runtime data
+└── README.md
+```
 
 ---
 
 ## Quick Start
 
-### Compile & Run
+### Option A: Using Make (Recommended)
+
+```bash
+# Build binary
+make
+
+# Run application
+make run
+
+# Clean build artifacts and runtime caches
+make clean
+```
+
+### Option B: Using Build Scripts
+
+- **Windows:** Double-click or run `build.bat` in CMD / PowerShell:
+  ```cmd
+  build.bat
+  student_mgmt.exe
+  ```
+- **macOS / Linux / WSL:**
+  ```bash
+  chmod +x build.sh && ./build.sh
+  ./student_mgmt
+  ```
+
+### Option C: Direct GCC Compilation
 
 **macOS / Linux / WSL (bash):**
 ```bash
-gcc -o student_mgmt main.c login.c student.c ui.c backup.c && ./student_mgmt
+gcc -Wall -Wextra -std=c99 -Iinclude src/*.c -o student_mgmt && ./student_mgmt
 ```
 
-**Windows — PowerShell** (run as two lines — `&&` is not supported in PowerShell):
+**Windows — PowerShell:**
 ```powershell
-gcc -o student_mgmt.exe main.c login.c student.c ui.c backup.c
-./student_mgmt.exe
+gcc -Wall -Wextra -std=c99 -Iinclude (Get-Item src/*.c) -o student_mgmt.exe
+.\student_mgmt.exe
 ```
 
-**Windows — Command Prompt (cmd.exe)** (`&&` works here):
+**Windows — Command Prompt (cmd.exe):**
 ```cmd
-gcc -o student_mgmt.exe main.c login.c student.c ui.c backup.c && student_mgmt.exe
+gcc -Wall -Wextra -std=c99 -Iinclude src\main.c src\login.c src\student.c src\ui.c src\backup.c -o student_mgmt.exe && student_mgmt.exe
 ```
 
-**Default login:**
+**Default login credentials:**
 ```
 Username : admin
 Password : admin123
@@ -52,47 +107,33 @@ Password : admin123
 
 ---
 
-## Project Files
+## Module Overview
 
-| File | Purpose |
-|------|---------|
-| `main.c` | Entry point, login flow, 12-item menu loop |
-| `login.c / .h` | Authentication, masked password input, password change |
-| `student.c / .h` | All CRUD, search, sort, stats, export, leaderboard, roster |
-| `backup.c / .h` | Timestamped backup creation and restore |
-| `ui.c / .h` | ANSI colours, box-drawing helpers, validated input functions |
-| `students.dat` | Binary data store — auto-created on first Add |
-| `admin.cfg` | Saved password — auto-created on first Change Password |
-| `backups/` | Backup snapshots — auto-created on first Backup |
-| `students_export.csv` | CSV export output |
+| Module | Source | Header | Responsibility |
+|--------|--------|--------|----------------|
+| **Main** | `src/main.c` | — | Entry point, login flow, 12-item menu loop |
+| **Auth** | `src/login.c` | `include/login.h` | Authentication, masked password input, password change |
+| **Student** | `src/student.c` | `include/student.h` | CRUD, search, sort, stats, export, leaderboard, roster |
+| **Backup** | `src/backup.c` | `include/backup.h` | Timestamped backup creation and restore |
+| **UI** | `src/ui.c` | `include/ui.h` | ANSI colours, box-drawing helpers, validated input functions |
 
 ---
 
 ## Documentation
 
+Detailed guides are located in the [`docs/`](docs/) directory:
+
 | Document | Read it for… |
 |----------|--------------|
-| [USAGE.md](USAGE.md) | Step-by-step guide for every menu feature |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Code structure, data format, how to extend |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Build setup, code style, adding features |
-| [CHANGELOG.md](CHANGELOG.md) | Version history |
+| [docs/USAGE.md](docs/USAGE.md) | Step-by-step guide for every menu feature |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Code structure, data format, module design, and how to extend |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Build setup, code style, and adding new features |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Version history and changes |
 
 ---
 
 ## Requirements
 
-- GCC (any version supporting C99)
-- A UTF-8 terminal (macOS Terminal, Linux terminal, Windows Terminal)
-- No external libraries
-
-### Windows setup
-
-1. Install [VS Code](https://code.visualstudio.com) and the **C/C++** extension
-2. Install [MSYS2](https://www.msys2.org), then open the MSYS2 terminal and run:
-   ```
-   pacman -S mingw-w64-ucrt-x86_64-gcc
-   ```
-3. Add `C:\msys64\ucrt64\bin` to your system PATH
-4. Open PowerShell or cmd.exe in your project folder and use the commands above
-
-Password masking uses `conio.h` on Windows (no WSL needed — works natively).
+- GCC (C99 compatible or newer) / Clang / MSVC
+- UTF-8 compatible terminal (macOS Terminal, Linux terminal, Windows Terminal)
+- No external libraries required (uses standard C library; `conio.h` on Windows for password masking, `termios.h` on POSIX)
