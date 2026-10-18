@@ -17,6 +17,7 @@ Guidelines for building, extending, and maintaining this project.
 ```bash
 make        # Compiles the project into student_mgmt (or student_mgmt.exe on Windows)
 make run    # Runs the compiled binary
+make test   # Runs the automated unit test suite
 make clean  # Cleans binary, object files, and test data
 ```
 

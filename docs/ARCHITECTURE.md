@@ -11,23 +11,30 @@ Technical reference for the codebase: file responsibilities, data format, module
 ├── include/
 │   ├── backup.h        Backup creation and restore declarations
 │   ├── login.h         Authentication & password management declarations
+│   ├── sha256.h        FIPS 180-4 SHA-256 cryptographic hashing header
 │   ├── student.h       Student struct, SortKey enum, CRUD declarations
 │   └── ui.h            ANSI colour macros, box-drawing, input helpers
 ├── src/
 │   ├── backup.c        Backup creation and restore implementations
 │   ├── login.c         Authentication & masked password implementations
 │   ├── main.c          Entry point, login orchestration, 12-item menu loop
-│   ├── student.c       All student operations (CRUD, search, sort, stats, export, roster)
+│   ├── sha256.c        SHA-256 algorithm and salted password hashing
+│   ├── student.c       Student operations (CRUD, search, filter, stats, CSV import/export)
 │   └── ui.c            ANSI formatting, box rendering, validated input
+├── tests/
+│   └── test_all.c      Automated unit test suite
 ├── docs/
 │   ├── ARCHITECTURE.md Architectural design and module specs
 │   ├── CHANGELOG.md    Version changelog
 │   ├── CONTRIBUTING.md Contributing and build guidelines
 │   └── USAGE.md        Step-by-step user manual
-├── Makefile            Cross-platform build script
+├── .github/workflows/
+│   └── ci.yml          Continuous integration workflow (Linux & Windows)
+├── Makefile            Cross-platform build automation & test runner
 ├── build.bat           Windows CMD/PowerShell build script
 ├── build.sh            Unix/macOS shell build script
 ├── .gitignore          Ignore binaries, objects, and runtime data
+├── LICENSE             MIT Open Source License
 └── README.md           Project overview and quickstart
 ```
 

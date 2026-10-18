@@ -134,7 +134,7 @@ Displays all students sorted by ID in a paginated table, 10 rows per page.
 
 ---
 
-## 6. Search Student
+## 6. Search & Multi-Criteria Filter
 
 **Menu → 3**
 
@@ -145,8 +145,9 @@ Choose a search mode:
 | 1 | Student ID | Exact |
 | 2 | Name | Partial, case-insensitive |
 | 3 | Course | Partial, case-insensitive |
+| 4 | Advanced Filter | Combines Min/Max GPA, Course, and Enrollment Year |
 
-Results are shown in the same paginated table. For example, searching name `ali` will match "Alice Johnson" and "Malik Ahmed".
+Results are shown in the paginated table. Option 4 allows combining multiple filters (e.g., GPA between 3.50 and 4.00 enrolled in Computer Science).
 
 ---
 
@@ -218,18 +219,22 @@ Displays a full report:
 
 ---
 
-## 11. Export to CSV
+## 11. CSV Operations (Export & Bulk Import)
 
 **Menu → 8**
 
-Exports all student records to `students_export.csv` in the project folder.
+### Option 1: Export to CSV
+Exports all student records to `students_export.csv` with a header row. Compatible with Excel, Google Sheets, or any CSV reader.
 
-**CSV columns:**
 ```
 ID, Name, Age, Course, GPA, Email, Phone, EnrollmentYear
 ```
 
-The file can be opened in Excel, Google Sheets, or any spreadsheet application.
+### Option 2: Bulk Import from CSV
+Uploads and validates students in batch from a CSV file (default: `students_export.csv`).
+- Each row is validated (name, age 15-100, course, GPA 0.00-4.00, year).
+- Automatic sequential ID assignment prevents collisions.
+- Reports total imported count and any skipped malformed rows.
 
 ---
 
@@ -288,7 +293,7 @@ Backups are sorted chronologically. The `backups/` folder is created automatical
 2. Enter a **new password** (masked) — minimum 4 characters.
 3. Enter the new password again to confirm.
 
-The new password is saved to `admin.cfg` and takes effect immediately.  
+The password is cryptographically protected with a **salted SHA-256 digest** and saved to `admin.cfg`. No plaintext password is ever stored on disk.  
 The default password `admin123` is used if `admin.cfg` does not exist.
 
 ---

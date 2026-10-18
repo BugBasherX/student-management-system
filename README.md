@@ -50,6 +50,9 @@ make
 # Run application
 make run
 
+# Run automated unit test suite
+make test
+
 # Clean build artifacts and runtime caches
 make clean
 ```
@@ -99,16 +102,16 @@ Password : admin123
 |---|---------|-------------|
 | 1 | Add Student | Name, age, course, GPA, email, phone, enrollment year — all validated |
 | 2 | View All | Paginated table (10 per page), navigate with N / P / Q |
-| 3 | Search | By ID, partial name, or partial course name (case-insensitive) |
+| 3 | Search & Filter | By ID, name, course, or **multi-criteria filter** (GPA range, course, year) |
 | 4 | Update | Edit any field; press Enter to keep the current value |
 | 5 | Delete | Shows the record first, requires typed confirmation |
 | 6 | Sort & View | Sort by ID, name, GPA ↑↓, age, course, or enrollment year |
 | 7 | Statistics | Total count, avg / hi / lo GPA, bar-chart grade distribution |
-| 8 | Export CSV | Writes `students_export.csv` with all fields |
+| 8 | CSV Export & Import | Export to CSV + **bulk import from CSV** with automatic validation |
 | 9 | Top-N Leaderboard | Ranked list by GPA; gold / silver / bronze medals for top 3 |
 | 10 | Course Roster | All students in a course + per-course count and GPA summary |
 | 11 | Backup & Restore | Timestamped snapshots in `backups/`; auto-backup before restore |
-| 12 | Change Password | Masked input, verified, saved to `admin.cfg` |
+| 12 | Change Password | Masked input, verified, secured with **salted SHA-256 digest** |
 
 ---
 
@@ -118,9 +121,11 @@ Password : admin123
 |--------|--------|--------|----------------|
 | **Main** | `src/main.c` | — | Entry point, login flow, 12-item menu loop |
 | **Auth** | `src/login.c` | `include/login.h` | Authentication, masked password input, password change |
-| **Student** | `src/student.c` | `include/student.h` | CRUD, search, sort, stats, export, leaderboard, roster |
+| **Crypto** | `src/sha256.c` | `include/sha256.h` | FIPS 180-4 standard SHA-256 salted password hashing |
+| **Student** | `src/student.c` | `include/student.h` | CRUD, search, filter, stats, CSV export/import, leaderboard |
 | **Backup** | `src/backup.c` | `include/backup.h` | Timestamped backup creation and restore |
 | **UI** | `src/ui.c` | `include/ui.h` | ANSI colours, box-drawing helpers, validated input functions |
+| **Tests** | `tests/test_all.c` | — | Automated unit test suite run in CI |
 
 ---
 

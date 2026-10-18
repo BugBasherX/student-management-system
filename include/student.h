@@ -1,6 +1,8 @@
 #ifndef STUDENT_H
 #define STUDENT_H
 
+#include <stddef.h>
+
 #define DATA_FILE "students.dat"
 
 #define MAX_NAME   64
@@ -30,17 +32,23 @@ typedef enum {
     SORT_YEAR
 } SortKey;
 
-/* CRUD */
-void addStudent   (void);
-void viewStudents (SortKey key);
-void searchStudent(void);
-void updateStudent(void);
-void deleteStudent(void);
-void sortMenu     (void);
-void statistics   (void);
-void exportCSV    (void);
-void topStudents  (void);   /* top-N leaderboard by GPA      */
-void courseRoster (void);   /* all students in a given course */
+/* CRUD & Core Features */
+void addStudent     (void);
+void viewStudents   (SortKey key);
+void searchStudent  (void);
+void filterStudents (void);   /* multi-criteria advanced filter */
+void updateStudent  (void);
+void deleteStudent  (void);
+void sortMenu       (void);
+void statistics     (void);
+void exportCSV      (void);
+void importCSV      (void);   /* bulk import from CSV */
+void topStudents    (void);   /* top-N leaderboard by GPA */
+void courseRoster   (void);   /* all students in a given course */
+
+/* Validation & Parsing (callable by test suite & feature code) */
+int  validateStudent(const Student *s, char *err_msg, size_t err_size);
+int  parseCSVRow    (const char *line, Student *out);
 
 /* Utilities */
 int   countStudents(void);

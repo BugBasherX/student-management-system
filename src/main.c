@@ -54,8 +54,8 @@ static void displayMainMenu(const char *user) {
            "%*s" BOX_V "\n", BOX_WIDTH - 46, "");
 
     printf(BOX_V "  " C_CYAN "[ 2]" C_RESET " View All Students   "
-                  C_CYAN "[ 8]" C_RESET " Export to CSV"
-           "%*s" BOX_V "\n", BOX_WIDTH - 42, "");
+                  C_CYAN "[ 8]" C_RESET " CSV Export / Import"
+           "%*s" BOX_V "\n", BOX_WIDTH - 49, "");
 
     printf(BOX_V "  " C_CYAN "[ 3]" C_RESET " Search Student      "
                   C_CYAN "[ 9]" C_RESET " Top-N Leaderboard"
@@ -141,7 +141,24 @@ int main(void) {
                 case  5: deleteStudent(); pauseScreen(); break;
                 case  6: sortMenu();             break;
                 case  7: statistics();           break;
-                case  8: exportCSV();            break;
+                case  8:
+                    clearScreen();
+                    printf("\n");
+                    printHLine(BOX_TL, BOX_H, BOX_TR);
+                    printBoxTitle("CSV DATA OPERATIONS");
+                    printHLine(BOX_ML, BOX_H, BOX_MR);
+                    printf(BOX_V "  " C_CYAN "[1]" C_RESET " Export to CSV File"
+                           "%*s" BOX_V "\n", BOX_WIDTH - 24, "");
+                    printf(BOX_V "  " C_CYAN "[2]" C_RESET " Bulk Import from CSV File"
+                           "%*s" BOX_V "\n", BOX_WIDTH - 29, "");
+                    printHLine(BOX_BL, BOX_H, BOX_BR);
+                    printf("\n");
+                    {
+                        int sub = readInt("Choice [1-2]: ", 1, 2);
+                        if (sub == 1) exportCSV();
+                        else          importCSV();
+                    }
+                    break;
                 case  9: topStudents();          break;
                 case 10: courseRoster();         break;
                 case 11:

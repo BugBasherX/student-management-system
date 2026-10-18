@@ -52,6 +52,83 @@ static int containsCI(const char *haystack, const char *needle) {
     return strstr(h, n) != NULL;
 }
 
+/* ── Validation & CSV Parsing Helpers ────────────────────── */
+
+int validateStudent(const Student *s, char *err_msg, size_t err_size) {
+    if (!s) return 0;
+    if (strlen(s->name) == 0) {
+        if (err_msg && err_size > 0) snprintf(err_msg, err_size, "Name cannot be empty.");
+        return 0;
+    }
+    if (s->age < 15 || s->age > 100) {
+        if (err_msg && err_size > 0) snprintf(err_msg, err_size, "Age must be between 15 and 100.");
+        return 0;
+    }
+    if (strlen(s->course) == 0) {
+        if (err_msg && err_size > 0) snprintf(err_msg, err_size, "Course cannot be empty.");
+        return 0;
+    }
+    if (s->gpa < 0.0f || s->gpa > 4.0f) {
+        if (err_msg && err_size > 0) snprintf(err_msg, err_size, "GPA must be between 0.00 and 4.00.");
+        return 0;
+    }
+    time_t t = time(NULL);
+    int curYear = (int)(localtime(&t)->tm_year + 1900);
+    if (s->year < 1990 || s->year > curYear + 1) {
+        if (err_msg && err_size > 0) snprintf(err_msg, err_size, "Enrollment year must be between 1990 and %d.", curYear + 1);
+        return 0;
+    }
+    return 1;
+}
+
+int parseCSVRow(const char *line, Student *out) {
+    if (!line || !out) return 0;
+    memset(out, 0, sizeof(Student));
+    char fields[8][128];
+    int f_idx = 0;
+    int c_idx = 0;
+    int in_quotes = 0;
+
+    for (int i = 0; line[i] && line[i] != '\r' && line[i] != '\n'; i++) {
+        char ch = line[i];
+        if (ch == '"') {
+            in_quotes = !in_quotes;
+        } else if (ch == ',' && !in_quotes) {
+            fields[f_idx][c_idx] = '\0';
+            f_idx++;
+            c_idx = 0;
+            if (f_idx >= 8) break;
+        } else {
+            if (c_idx < 127) {
+                fields[f_idx][c_idx++] = ch;
+            }
+        }
+    }
+    fields[f_idx][c_idx] = '\0';
+    f_idx++;
+
+    int offset = 0;
+    if (f_idx >= 8) {
+        out->id = atoi(fields[0]);
+        offset = 1;
+    } else if (f_idx == 7) {
+        out->id = 0;
+        offset = 0;
+    } else {
+        return 0;
+    }
+
+    strncpy(out->name, fields[offset + 0], sizeof(out->name) - 1);
+    out->age = atoi(fields[offset + 1]);
+    strncpy(out->course, fields[offset + 2], sizeof(out->course) - 1);
+    out->gpa = (float)atof(fields[offset + 3]);
+    strncpy(out->email, fields[offset + 4], sizeof(out->email) - 1);
+    strncpy(out->phone, fields[offset + 5], sizeof(out->phone) - 1);
+    out->year = atoi(fields[offset + 6]);
+
+    return validateStudent(out, NULL, 0);
+}
+
 /* ── Sort comparators ────────────────────────────────────── */
 
 static int cmpId     (const void *a, const void *b) { return ((Student*)a)->id   - ((Student*)b)->id;   }
@@ -251,6 +328,54 @@ void viewStudents(SortKey key) {
     free(arr);
 }
 
+/* ── Filter ──────────────────────────────────────────────── */
+
+void filterStudents(void) {
+    Student *arr;
+    int n = loadAll(&arr);
+    if (n == 0) { printWarning("No students on record."); pauseScreen(); return; }
+
+    clearScreen();
+    printf("\n");
+    printHLine(BOX_TL, BOX_H, BOX_TR);
+    printBoxTitle("MULTI-CRITERIA ADVANCED FILTER");
+    printHLine(BOX_ML, BOX_H, BOX_MR);
+    printBoxBlank();
+    printBoxTitle("Filter students by combining criteria");
+    printBoxBlank();
+    printHLine(BOX_BL, BOX_H, BOX_BR);
+    printf("\n");
+
+    float minGpa = readFloat("Minimum GPA (0.00 - 4.00)                      : ", 0.0f, 4.0f);
+    float maxGpa = readFloat("Maximum GPA (0.00 - 4.00)                      : ", minGpa, 4.0f);
+
+    char courseFilter[64];
+    readStringOpt("Course name (partial match, Enter to match all): ", courseFilter, sizeof(courseFilter));
+
+    int yearFilter = readInt("Enrollment Year (1990-current, or 0 for all)    : ", 0, 2030);
+
+    Student *matches = malloc(n * sizeof(Student));
+    int count = 0;
+
+    for (int i = 0; i < n; i++) {
+        if (arr[i].gpa < minGpa || arr[i].gpa > maxGpa) continue;
+        if (strlen(courseFilter) > 0 && !containsCI(arr[i].course, courseFilter)) continue;
+        if (yearFilter > 0 && arr[i].year != yearFilter) continue;
+        matches[count++] = arr[i];
+    }
+    free(arr);
+
+    if (count == 0) {
+        printWarning("No students matched the filter criteria.");
+        free(matches);
+        pauseScreen();
+        return;
+    }
+
+    displayTable(matches, count, SORT_GPA_DESC, "FILTERED STUDENTS");
+    free(matches);
+}
+
 /* ── Search ──────────────────────────────────────────────── */
 
 void searchStudent(void) {
@@ -269,10 +394,17 @@ void searchStudent(void) {
            "%*s" BOX_V "\n", BOX_WIDTH - 29, "");
     printf(BOX_V "  " C_CYAN "[3]" C_RESET " Search by Course"
            "%*s" BOX_V "\n", BOX_WIDTH - 21, "");
+    printf(BOX_V "  " C_CYAN "[4]" C_RESET " Advanced Multi-Criteria Filter"
+           "%*s" BOX_V "\n", BOX_WIDTH - 35, "");
     printHLine(BOX_BL, BOX_H, BOX_BR);
     printf("\n");
 
-    int choice = readInt("Choice [1-3]: ", 1, 3);
+    int choice = readInt("Choice [1-4]: ", 1, 4);
+    if (choice == 4) {
+        free(arr);
+        filterStudents();
+        return;
+    }
     printf("\n");
 
     Student *results = malloc(n * sizeof(Student));
@@ -549,6 +681,84 @@ void exportCSV(void) {
     printf("  " C_DIM "Saved to: " C_BCYAN "%s" C_RESET
            C_DIM "  (%d record%s)\n" C_RESET,
            path, n, n == 1 ? "" : "s");
+    pauseScreen();
+}
+
+/* ── Import ──────────────────────────────────────────────── */
+
+void importCSV(void) {
+    clearScreen();
+    printf("\n");
+    printHLine(BOX_TL, BOX_H, BOX_TR);
+    printBoxTitle("BULK CSV IMPORT");
+    printHLine(BOX_ML, BOX_H, BOX_MR);
+    printBoxBlank();
+    printBoxTitle("Upload and append students from CSV file");
+    printBoxBlank();
+    printHLine(BOX_BL, BOX_H, BOX_BR);
+    printf("\n");
+
+    char path[128];
+    readStringOpt("CSV file path (press Enter for 'students_export.csv'): ", path, sizeof(path));
+    if (strlen(path) == 0) strncpy(path, "students_export.csv", sizeof(path) - 1);
+
+    FILE *f = fopen(path, "r");
+    if (!f) {
+        printError("Could not open specified CSV file.");
+        pauseScreen();
+        return;
+    }
+
+    Student *arr;
+    int n = loadAll(&arr);
+    int currentNextId = nextId(arr, n);
+    free(arr);
+
+    char line[512];
+    int imported = 0;
+    int skipped = 0;
+    int line_num = 0;
+
+    FILE *out = fopen(DATA_FILE, "ab");
+    if (!out) {
+        fclose(f);
+        printError("Could not open data store for writing.");
+        pauseScreen();
+        return;
+    }
+
+    while (fgets(line, sizeof(line), f)) {
+        line_num++;
+        if (line_num == 1 && (containsCI(line, "ID") || containsCI(line, "Name"))) {
+            continue;
+        }
+        if (line[0] == '\r' || line[0] == '\n' || line[0] == '\0') continue;
+
+        Student s;
+        if (parseCSVRow(line, &s)) {
+            s.id = currentNextId++;
+            fwrite(&s, sizeof(Student), 1, out);
+            imported++;
+        } else {
+            skipped++;
+        }
+    }
+    fclose(f);
+    fclose(out);
+
+    if (imported > 0) {
+        printSuccess("Bulk import completed!");
+        printf("  " C_BGREEN "✔ Successfully imported : %d student%s\n" C_RESET,
+               imported, imported == 1 ? "" : "s");
+        if (skipped > 0) {
+            printf("  " C_YELLOW "⚠ Skipped invalid rows   : %d\n" C_RESET, skipped);
+        }
+    } else {
+        printWarning("No valid student rows found in CSV.");
+        if (skipped > 0) {
+            printf("  " C_YELLOW "⚠ Skipped invalid rows : %d\n" C_RESET, skipped);
+        }
+    }
     pauseScreen();
 }
 

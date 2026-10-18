@@ -7,37 +7,38 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-linux:
-    name: Build on Ubuntu (Linux)
+  build-and-test-linux:
+    name: Build & Test on Ubuntu (Linux)
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
-    - name: Compile with GCC
+    - name: Compile Application with GCC
       run: |
         gcc -Wall -Wextra -std=c99 -Iinclude src/*.c -o student_mgmt
-
-    - name: Test build output
-      run: |
         test -f student_mgmt
-        echo "Binary successfully compiled."
+        echo "Application compiled successfully."
 
-  build-windows:
-    name: Build on Windows
+    - name: Compile and Run Unit Tests
+      run: |
+        gcc -Wall -Wextra -std=c99 -Iinclude tests/test_all.c src/sha256.c src/student.c src/ui.c src/backup.c -o test_runner
+        ./test_runner
+
+  build-and-test-windows:
+    name: Build & Test on Windows
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
 
-    - name: Compile with GCC (MinGW)
+    - name: Compile Application with GCC (MinGW)
       shell: pwsh
       run: |
         gcc -Wall -Wextra -std=c99 -Iinclude (Get-Item src/*.c) -o student_mgmt.exe
+        if (-not (Test-Path student_mgmt.exe)) { exit 1 }
+        Write-Host "Application compiled successfully."
 
-    - name: Test build output
+    - name: Compile and Run Unit Tests
       shell: pwsh
       run: |
-        if (Test-Path student_mgmt.exe) {
-          Write-Host "Binary successfully compiled."
-        } else {
-          exit 1
-        }
+        gcc -Wall -Wextra -std=c99 -Iinclude tests/test_all.c src/sha256.c src/student.c src/ui.c src/backup.c -o test_runner.exe
+        .\test_runner.exe
