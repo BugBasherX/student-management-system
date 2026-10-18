@@ -8,58 +8,57 @@ Guidelines for building, extending, and maintaining this project.
 
 ### Requirements
 
-- GCC with C99 support
+- GCC with C99 support (or Clang / MSVC)
 - Any terminal (Linux, macOS, Windows PowerShell, cmd.exe)
 - No external libraries
 
-### Compile & run — macOS / Linux / WSL
+### Option A: Using Make (Cross-platform)
 
 ```bash
-gcc -Wall -Wextra -o student_mgmt main.c login.c student.c ui.c backup.c
+make        # Compiles the project into student_mgmt (or student_mgmt.exe on Windows)
+make run    # Runs the compiled binary
+make clean  # Cleans binary, object files, and test data
+```
+
+### Option B: Build Scripts
+
+- **Windows:** Run `build.bat`
+- **macOS / Linux:** Run `./build.sh`
+
+### Option C: Direct GCC Compilation
+
+**macOS / Linux / WSL:**
+```bash
+gcc -Wall -Wextra -std=c99 -Iinclude src/*.c -o student_mgmt
 ./student_mgmt
 ```
 
-### Compile & run — Windows PowerShell
-
-PowerShell does not support `&&` — run two separate lines:
-
+**Windows PowerShell:**
 ```powershell
-gcc -Wall -Wextra -o student_mgmt.exe main.c login.c student.c ui.c backup.c
-./student_mgmt.exe
+gcc -Wall -Wextra -std=c99 -Iinclude (Get-Item src/*.c) -o student_mgmt.exe
+.\student_mgmt.exe
 ```
 
-### Compile & run — Windows cmd.exe
-
-`&&` works in cmd.exe:
-
+**Windows cmd.exe:**
 ```cmd
-gcc -Wall -Wextra -o student_mgmt.exe main.c login.c student.c ui.c backup.c && student_mgmt.exe
+gcc -Wall -Wextra -std=c99 -Iinclude src\main.c src\login.c src\student.c src\ui.c src\backup.c -o student_mgmt.exe
+student_mgmt.exe
 ```
-
-### Windows GCC setup (one-time)
-
-1. Install [MSYS2](https://www.msys2.org)
-2. In the MSYS2 terminal run: `pacman -S mingw-w64-ucrt-x86_64-gcc`
-3. Add `C:\msys64\ucrt64\bin` to your Windows PATH
 
 ### Clean build artefacts
 
+Using `make clean` is recommended, or manually:
+
 **macOS / Linux:**
 ```bash
-rm -f student_mgmt students.dat admin.cfg students_export.csv
+rm -f student_mgmt src/*.o students.dat admin.cfg students_export.csv
 rm -rf backups/
 ```
 
 **Windows PowerShell:**
 ```powershell
-Remove-Item -ErrorAction SilentlyContinue student_mgmt.exe, students.dat, admin.cfg, students_export.csv
+Remove-Item -ErrorAction SilentlyContinue student_mgmt.exe, src\*.o, students.dat, admin.cfg, students_export.csv
 Remove-Item -Recurse -ErrorAction SilentlyContinue backups
-```
-
-**Windows cmd.exe:**
-```cmd
-del /q student_mgmt.exe students.dat admin.cfg students_export.csv 2>nul
-rmdir /s /q backups 2>nul
 ```
 
 ---
@@ -83,11 +82,11 @@ rmdir /s /q backups 2>nul
 
 ## Project Structure Rules
 
-- **`ui.c / ui.h`** — terminal/display only. No business logic, no file I/O.
-- **`login.c / login.h`** — authentication only. No student data access.
-- **`student.c / student.h`** — student data operations only. May call `ui.c` helpers.
-- **`backup.c / backup.h`** — file copy operations only. May call `ui.c` helpers and `countStudents()`.
-- **`main.c`** — orchestration only. No direct data manipulation; calls module functions.
+- **`src/ui.c` & `include/ui.h`** — terminal/display only. No business logic, no file I/O.
+- **`src/login.c` & `include/login.h`** — authentication only. No student data access.
+- **`src/student.c` & `include/student.h`** — student data operations only. May call `ui.c` helpers.
+- **`src/backup.c` & `include/backup.h`** — file copy operations only. May call `ui.c` helpers and `countStudents()`.
+- **`src/main.c`** — orchestration only. No direct data manipulation; calls module functions.
 
 ---
 
@@ -95,16 +94,16 @@ rmdir /s /q backups 2>nul
 
 ### Step 1 — Write the function
 
-Add it to the most appropriate existing `.c` file, or create a new `feature.c / feature.h` pair.
+Add it to the most appropriate existing `.c` file in `src/`, or create a new `src/feature.c` / `include/feature.h` pair.
 
 ```c
-/* feature.h */
+/* include/feature.h */
 #ifndef FEATURE_H
 #define FEATURE_H
 void myFeature(void);
 #endif
 
-/* feature.c */
+/* src/feature.c */
 #include "feature.h"
 #include "ui.h"
 
@@ -121,7 +120,7 @@ void myFeature(void) {
 
 ### Step 2 — Add it to the menu
 
-In `main.c`:
+In `src/main.c`:
 
 ```c
 /* In displayMainMenu() — add a printf line */
@@ -134,8 +133,10 @@ case 13: myFeature(); break;
 
 ### Step 3 — Add the new file to the build command
 
-```bash
-gcc -Wall -Wextra -o student_mgmt main.c login.c student.c ui.c backup.c feature.c
+Add `src/feature.c` to `SRCS` in `Makefile` (and `build.bat` / `build.sh`):
+
+```makefile
+SRCS = src/main.c src/login.c src/student.c src/ui.c src/backup.c src/feature.c
 ```
 
 ---

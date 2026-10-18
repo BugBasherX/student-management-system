@@ -1,0 +1,34 @@
+# Compiled binaries
+student_mgmt
+student_mgmt.exe
+*.out
+*.app
+
+# Object files and libraries
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+
+# Build output directories
+bin/
+build/
+obj/
+
+# Runtime data & configuration
+students.dat
+admin.cfg
+students_export.csv
+backups/
+
+# Editor & OS metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

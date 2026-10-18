@@ -29,20 +29,27 @@ Complete walkthrough of every feature in the application.
 
 Compile once, then run.
 
-**macOS / Linux / WSL:**
+**Using Make (recommended):**
 ```bash
-gcc -o student_mgmt main.c login.c student.c ui.c backup.c && ./student_mgmt
+make run
 ```
 
-**Windows — PowerShell** (`&&` is not valid — use two lines):
-```powershell
-gcc -o student_mgmt.exe main.c login.c student.c ui.c backup.c
-./student_mgmt.exe
-```
-
-**Windows — cmd.exe:**
+**Windows — using build.bat:**
 ```cmd
-gcc -o student_mgmt.exe main.c login.c student.c ui.c backup.c && student_mgmt.exe
+build.bat
+student_mgmt.exe
+```
+
+**macOS / Linux / WSL — using build.sh or direct GCC:**
+```bash
+./build.sh
+# OR: gcc -Wall -Wextra -std=c99 -Iinclude src/*.c -o student_mgmt && ./student_mgmt
+```
+
+**Windows — PowerShell:**
+```powershell
+gcc -Wall -Wextra -std=c99 -Iinclude (Get-Item src/*.c) -o student_mgmt.exe
+.\student_mgmt.exe
 ```
 
 The login screen appears immediately.

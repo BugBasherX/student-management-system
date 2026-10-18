@@ -8,17 +8,29 @@ Technical reference for the codebase: file responsibilities, data format, module
 
 ```
 .
-├── main.c          Entry point, login orchestration, 12-item menu loop
-├── login.c / .h    Authentication, masked password input, password change
-├── student.c / .h  All student operations (CRUD, search, sort, stats, export,
-│                   leaderboard, roster)
-├── backup.c / .h   Backup creation and restore
-├── ui.c / .h       ANSI colour macros, box-drawing helpers, validated input
-│
-├── students.dat    Binary flat-file data store (auto-created)
-├── admin.cfg       Plain-text password file (auto-created on first change)
-└── backups/        Timestamped backup snapshots (auto-created)
+├── include/
+│   ├── backup.h        Backup creation and restore declarations
+│   ├── login.h         Authentication & password management declarations
+│   ├── student.h       Student struct, SortKey enum, CRUD declarations
+│   └── ui.h            ANSI colour macros, box-drawing, input helpers
+├── src/
+│   ├── backup.c        Backup creation and restore implementations
+│   ├── login.c         Authentication & masked password implementations
+│   ├── main.c          Entry point, login orchestration, 12-item menu loop
+│   ├── student.c       All student operations (CRUD, search, sort, stats, export, roster)
+│   └── ui.c            ANSI formatting, box rendering, validated input
+├── docs/
+│   ├── ARCHITECTURE.md Architectural design and module specs
+│   ├── CHANGELOG.md    Version changelog
+│   ├── CONTRIBUTING.md Contributing and build guidelines
+│   └── USAGE.md        Step-by-step user manual
+├── Makefile            Cross-platform build script
+├── build.bat           Windows CMD/PowerShell build script
+├── build.sh            Unix/macOS shell build script
+├── .gitignore          Ignore binaries, objects, and runtime data
+└── README.md           Project overview and quickstart
 ```
+
 
 ---
 
@@ -167,11 +179,11 @@ main()
 
 ## How to Add a New Menu Item
 
-1. **`student.h`** (or a new header) — declare the function.
-2. **Implement** the function in `student.c` (or a new `.c` file).
-3. **`main.c` → `displayMainMenu()`** — add a `printf` line for the new option.
-4. **`main.c` → menu `switch`** — add a `case N:` calling the function.
-5. **Compile** with the new `.c` file added to the `gcc` command.
+1. **`include/student.h`** (or a new header in `include/`) — declare the function.
+2. **Implement** the function in `src/student.c` (or a new `.c` file in `src/`).
+3. **`src/main.c` → `displayMainMenu()`** — add a `printf` line for the new option.
+4. **`src/main.c` → menu `switch`** — add a `case N:` calling the function.
+5. **Compile** using `make` or add the source to `SRCS` in the `Makefile`.
 
 ---
 
