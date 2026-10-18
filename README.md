@@ -1,5 +1,10 @@
 # Student Management System v2.0
 
+![CI](https://github.com/yuvrajk2/student-management-system/actions/workflows/ci.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Language](https://img.shields.io/badge/Language-C99-00599C?logo=c)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
+
 A terminal-based Student Management System written in pure C (C99).  
 Coloured TUI with box-drawing borders, paginated tables, search, sort, statistics, backup/restore, and more — no external libraries required.
 
